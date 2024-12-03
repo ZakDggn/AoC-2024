@@ -14,10 +14,10 @@ part2 :: [[Int]] -> Int
 part2 = length . filter isSafeDampened
 
 isSafeDampened :: [Int] -> Bool
-isSafeDampened report = isSafe report || containsSafeDampened report
+isSafeDampened report = isSafe report || containsSafeDampened
   where
-    containsSafeDampened = or . map isSafe . subReports
-    subReports report = [deleteAt i report | i <- [0 .. length report - 1]]
+    containsSafeDampened = any isSafe subReports
+    subReports = [deleteAt i report | i <- [0 .. length report - 1]]
     deleteAt i xs = take i xs ++ drop (i + 1) xs
 
 main = do

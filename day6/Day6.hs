@@ -1,4 +1,4 @@
-import Data.Map (Map, (!))
+import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
@@ -7,7 +7,7 @@ data Direction = North | East | South | West deriving (Eq, Enum, Show)
 
 type Position = (Int, Int)
 
-type Obstacles = Map Position [Direction]
+type Obstacles = Set Position
 
 type Dimensions = (Int, Int)
 
@@ -20,7 +20,7 @@ parse contents = (obstacles, pos, (rows, cols))
     maxY = rows - 1
     maxX = cols - 1
     pos = head [(x, y) | x <- [0 .. maxX], y <- [0 .. maxY], grid !! y !! x == '^']
-    obstacles = Map.fromList [((x, y), []) | x <- [0 .. maxX], y <- [0 .. maxY], grid !! y !! x == '#']
+    obstacles = Set.fromList [(x, y) | x <- [0 .. maxX], y <- [0 .. maxY], grid !! y !! x == '#']
 
 rotate :: Direction -> Direction
 rotate West = North
@@ -43,7 +43,7 @@ step obstacles pos direction
   | otherwise = (pos', direction)
   where
     pos' = nextPos pos direction
-    isObstacle (x, y) = Map.member (x, y) obstacles
+    isObstacle (x, y) = Set.member (x, y) obstacles
 
 isOutOfBounds :: Dimensions -> Position -> Bool
 isOutOfBounds (rows, cols) (x, y) = x < 0 || x >= cols || y < 0 || y >= rows
@@ -59,37 +59,31 @@ getVisited obstacles dimensions (pos, direction)
 part1 :: Obstacles -> Dimensions -> Position -> Int
 part1 obstacles dimensions startPos = Set.size $ getVisited obstacles dimensions (startPos, North)
 
-wouldLoop :: Obstacles -> Dimensions -> Position -> Direction -> Bool
-wouldLoop obstacles dimensions pos searchDirection
+wouldLoop :: Obstacles -> Dimensions -> Map Position [Direction] -> Position -> Direction -> Bool
+wouldLoop obstacles dimensions visited pos direction
   | isOutOfBounds dimensions pos = False
-  | foundObstacle = isLoopingObstacle
-  | otherwise = wouldLoop obstacles dimensions pos' searchDirection
+  | direction `elem` Map.findWithDefault [] pos visited = True
+  | otherwise = wouldLoop obstacles dimensions visited' pos' direction'
   where
-    (pos', direction') = step obstacles pos searchDirection
-    foundObstacle = direction' /= searchDirection
-    obstaclePos = nextPos pos searchDirection
-    -- TODO: might be a looping obstacle even if not visited yet?
-    isLoopingObstacle = searchDirection `elem` (obstacles ! obstaclePos)
+    (pos', direction') = step obstacles pos direction
+    visited' = Map.insertWith (++) pos [direction] visited
 
-getLoops :: Obstacles -> Dimensions -> (Position, Direction) -> [Position]
-getLoops obstacles dimensions (pos, direction)
-  | isOutOfBounds dimensions pos' = []
+getLoops :: Obstacles -> Dimensions -> Position -> Position -> Direction -> Set Position
+getLoops obstacles dimensions startPos pos direction
+  | isOutOfBounds dimensions pos' = Set.empty
   | otherwise = loopPositions'
   where
     (pos', direction') = step obstacles pos direction
-    loopPositions = getLoops obstacles' dimensions (pos', direction')
-    obstacles' =
-      if direction /= direction'
-        then Map.adjust (direction :) (nextPos pos direction) obstacles
-        else obstacles
-    searchDirection = rotate direction
+    loopPositions = getLoops obstacles dimensions startPos pos' direction'
+    obstacleCandidate = nextPos pos direction
+    obstacles' = Set.insert obstacleCandidate obstacles
     loopPositions' =
-      if wouldLoop obstacles' dimensions pos searchDirection
-        then (nextPos pos direction) : loopPositions
+      if wouldLoop obstacles' dimensions Map.empty startPos North
+        then Set.insert obstacleCandidate loopPositions
         else loopPositions
 
 part2 :: Obstacles -> Dimensions -> Position -> Int
-part2 obstacles dimensions startPos = length $ getLoops obstacles dimensions (startPos, North)
+part2 obstacles dimensions startPos = Set.size $ getLoops obstacles dimensions startPos startPos North
 
 main = do
   contents <- readFile "input"

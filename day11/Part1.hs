@@ -1,9 +1,9 @@
 parse :: String -> [Int]
 parse = map read . words
 
-transformOne :: Int -> [Int]
-transformOne 0 = [1]
-transformOne stone
+transformStone :: Int -> [Int]
+transformStone 0 = [1]
+transformStone stone
   | evenDigits = [read left, read right]
   | otherwise = [stone * 2024]
   where
@@ -12,11 +12,12 @@ transformOne stone
     evenDigits = len `mod` 2 == 0
     (left, right) = splitAt (len `div` 2) digits
 
-transformAll :: [Int] -> [Int]
-transformAll = concatMap transformOne
+countStones :: Int -> Int -> Int
+countStones 1 stone = length $ transformStone stone
+countStones n stone = sum $ map (countStones (n - 1)) (transformStone stone)
 
 part1 :: [Int] -> Int
-part1 stones = length $ iterate transformAll stones !! 25
+part1 = sum . map (countStones 25)
 
 main = do
   contents <- readFile "input"

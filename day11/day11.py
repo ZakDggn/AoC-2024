@@ -1,7 +1,4 @@
-from typing import Tuple, List
-
-
-def transform_stone(stone: int) -> List[int]:
+def transform_stone(stone: int) -> list[int]:
     digits = str(stone)
     length = len(digits)
     if stone == 0:
@@ -12,7 +9,7 @@ def transform_stone(stone: int) -> List[int]:
         return [stone * 2024]
 
 
-memo: dict[Tuple[int, int], int] = {}
+memo: dict[tuple[int, int], int] = {}
 
 
 def count_stones(n: int, stone: int) -> int:
@@ -29,7 +26,7 @@ def count_stones(n: int, stone: int) -> int:
     return count
 
 
-def count_all(n: int, stones: List[int]) -> int:
+def count_all(n: int, stones: list[int]) -> int:
     count = 0
     for stone in stones:
         count += count_stones(n, stone)

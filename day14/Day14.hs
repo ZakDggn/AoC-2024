@@ -1,6 +1,6 @@
-import qualified Data.IntMultiSet as MS
 import Data.List.Split (splitOn)
 import Data.Maybe (catMaybes)
+import qualified Data.MultiSet as MS
 
 data Robot = Robot (Int, Int) (Int, Int) deriving (Show)
 
@@ -40,9 +40,31 @@ part1 bounds robots = MS.foldOccur (\_ -> (*)) 1 quadrantBag
     quadrants = catMaybes $ map (quadrant bounds . position) finalRobots
     quadrantBag = foldr MS.insert MS.empty quadrants
 
+visualise :: Bounds -> [Robot] -> String
+visualise (rows, cols) robots =
+  unlines [[char (x, y) | x <- [0 .. cols - 1]] | y <- [0 .. rows - 1]]
+  where
+    positions = map position robots
+    char pos
+      | pos `elem` positions = '#'
+      | otherwise = '.'
+
+part2 :: Bounds -> [Robot] -> (Int, String)
+part2 bounds =
+  (\(i, robots) -> (i, visualise bounds robots))
+    . head
+    . dropWhile overlapping
+    . zip [0 ..]
+    . iterate (map $ update bounds)
+  where
+    overlapping (i, robots) = allUnique $ foldr MS.insert MS.empty (map position robots)
+    allUnique bag = MS.size bag /= MS.distinctSize bag
+
 main = do
   contents <- readFile "input"
   let robots = parse contents
-  -- let bounds = (7, 11)
   let bounds = (103, 101)
   print $ part1 bounds robots
+  let (i, robotString) = part2 bounds robots
+  putStrLn robotString
+  print i

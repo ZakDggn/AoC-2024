@@ -1,3 +1,4 @@
+import Control.Exception (assert)
 import Data.Bits (xor)
 import Data.List ((!?))
 import Data.List.Split (chunksOf, splitOn)
@@ -69,15 +70,17 @@ perform (7, operand) (State registers pointer output) = State registers' (pointe
     registers' = setRegC result registers
 perform (opcode, _) _ = error $ "Invalid opcode: " ++ show opcode
 
-run :: [Instruction] -> State -> State
-run instructions state = case instructions !? (pointer state) of
-  Nothing -> state
-  Just instruction -> run instructions state'
-    where
-      state' = perform instruction state
+run :: Registers -> [Instruction] -> State
+run registers instructions = go (State registers 0 [])
+  where
+    go state = case instructions !? (pointer state) of
+      Nothing -> state
+      Just instruction ->
+        let state' = perform instruction state
+         in go state'
 
 part1 :: Registers -> [Instruction] -> State
-part1 registers instructions = run instructions (State registers 0 [])
+part1 = run
 
 parse :: String -> (Registers, [Instruction])
 parse contents = (Registers a b c, instructions)
@@ -88,8 +91,35 @@ parse contents = (Registers a b c, instructions)
     instructions = map tuplify . chunksOf 2 $ programNums
     tuplify [x, y] = (x, y)
 
+getPossibleAs :: [Instruction] -> Int -> Int -> [Int]
+getPossibleAs instructions targetOutput prevA = filter returnsTarget rangeAs
+  where
+    rangeAs = [8 * prevA .. 8 * prevA + 7]
+    returnsTarget a = getOutput (Registers a 0 0) == targetOutput
+    getOutput registers =
+      let (State _ _ output) = run registers instructions
+       in head output
+
+findInitialAs :: [Instruction] -> [Int] -> [Int] -> [Int]
+findInitialAs _ prevAs [] = prevAs
+findInitialAs instructions prevAs (target : targets) = findInitialAs instructions nextAs targets
+  where
+    nextAs = concatMap (getPossibleAs instructions target) prevAs
+
+part2 :: [Instruction] -> Int
+part2 instructions = assert (output == programNums) a
+  where
+    programNums = concatMap untuplify instructions
+    untuplify (x, y) = [x, y]
+    targetOutputs = reverse programNums
+    instructions' = init instructions -- without jump instruction i.e. single iteration of loop
+    finalA = head targetOutputs
+    a = minimum $ findInitialAs instructions' [finalA] targetOutputs
+    (State _ _ output) = run (Registers a 0 0) instructions
+
 main = do
   contents <- readFile "input"
   let (registers, instructions) = parse contents
   let (State _ _ output) = part1 registers instructions
   print output
+  print $ part2 instructions

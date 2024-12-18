@@ -1,4 +1,5 @@
 import Control.Exception (assert)
+import Criterion.Main
 import Data.Bits (xor)
 import Data.List ((!?))
 import Data.List.Split (chunksOf, splitOn)
@@ -79,8 +80,10 @@ run registers instructions = go (State registers 0 [])
         let state' = perform instruction state
          in go state'
 
-part1 :: Registers -> [Instruction] -> State
-part1 = run
+part1 :: Registers -> [Instruction] -> [Int]
+part1 registers instructions = output
+  where
+    (State _ _ output) = run registers instructions
 
 parse :: String -> (Registers, [Instruction])
 parse contents = (Registers a b c, instructions)
@@ -120,6 +123,11 @@ part2 instructions = assert (output == programNums) a
 main = do
   contents <- readFile "input"
   let (registers, instructions) = parse contents
-  let (State _ _ output) = part1 registers instructions
-  print output
+  putStr "Part 1: "
+  print $ part1 registers instructions
+  putStr "Part 2: "
   print $ part2 instructions
+  defaultMain
+    [ bench "part1" $ nf (part1 registers) instructions,
+      bench "part2" $ nf part2 instructions
+    ]

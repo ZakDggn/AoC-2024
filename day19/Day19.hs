@@ -1,4 +1,4 @@
-import Data.List (sortBy, stripPrefix)
+import Data.List (stripPrefix)
 import Data.Maybe (catMaybes)
 import Data.MemoTrie
 
@@ -9,22 +9,22 @@ parse contents = (patterns, designs)
     designs = drop 2 $ lines contents
 
 isPossible :: [String] -> String -> Bool
-isPossible = curry $ memoFix helper
+isPossible patterns = memoFix helper
   where
-    helper _ (_, "") = True
-    helper f (patterns, design)
+    helper _ "" = True
+    helper f design
       | null designSuffixes = False
-      | otherwise = any (curry f patterns) designSuffixes
+      | otherwise = any f designSuffixes
       where
         designSuffixes = catMaybes $ map (`stripPrefix` design) patterns
 
 waysPossible :: [String] -> String -> Int
-waysPossible = curry $ memoFix helper
+waysPossible patterns = memoFix helper
   where
-    helper _ (_, "") = 1
-    helper f (patterns, design)
+    helper _ "" = 1
+    helper f design
       | null designSuffixes = 0
-      | otherwise = sum $ map (curry f patterns) designSuffixes
+      | otherwise = sum $ map f designSuffixes
       where
         designSuffixes = catMaybes $ map (`stripPrefix` design) patterns
 

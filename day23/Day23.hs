@@ -1,5 +1,5 @@
 import Control.Arrow ((&&&))
-import Data.List (nub)
+import Data.List (inits, intercalate, nub)
 import Data.Map (Map, (!))
 import qualified Data.Map as Map
 import Data.Set (Set)
@@ -32,7 +32,27 @@ part1 graph = length allThrees
     tNodes = filter ((== 't') . head) $ Map.keys graph
     allThrees = nub $ concatMap (findThrees graph) tNodes
 
+findCluster :: Graph -> Node -> Int -> [[Node]]
+findCluster graph a = go a [] []
+  where
+    go node _ _ 1 = [[node]]
+    go node seen cluster n = map (node :) clusters
+      where
+        adj = Set.toList . (graph !)
+        nextNodes = filter (\x -> x `notElem` seen && isInCluster x) $ adj node
+        isInCluster x = all (`elem` adj x) cluster
+        cluster' = node : cluster
+        clusters =
+          concat
+            [ go next (node : seen ++ seen') cluster' (n - 1)
+              | (next, seen') <- zip nextNodes (inits nextNodes)
+            ]
+
+part2 :: Graph -> String
+part2 graph = intercalate "," . head $ findCluster graph "da" 13
+
 main = do
   contents <- readFile "input"
   let graph = parse contents
   print $ part1 graph
+  putStrLn $ part2 graph

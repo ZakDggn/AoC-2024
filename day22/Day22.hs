@@ -30,10 +30,10 @@ makeSeqToPrice secret = Map.fromListWith (flip const) $ zip seqs (drop 4 ps)
     seqs = seqsOfFour $ changes ps
 
 part2 :: [Int] -> Int
-part2 secrets = maximum $ Map.elems seqToTotalPrice
+part2 secrets = maximum seqToTotalPrice
   where
     seqToPrices = map makeSeqToPrice secrets
-    seqToTotalPrice = foldr1 (Map.unionWith (+)) seqToPrices
+    seqToTotalPrice = Map.unionsWith (+) seqToPrices
 
 main = do
   secrets <- parse <$> readFile "input"
